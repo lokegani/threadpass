@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Unit — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<main class="page">
+  <div class="wrap stack" id="view"></div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/charts.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var session = TP.requireSession();
+  if (!session) return;
+
+  TP.renderChrome("dashboard", session);
+  TP.renderFooter();
+
+  var slug = TP.query("u");
+
+  /* A unit account may only ever look at its own unit, whatever the URL says. */
+  if (session.role === "UNIT") slug = session.unit;
+
+  var a = slug ? TP.byUnitSlug(slug) : null;
+  var view = document.getElementById("view");
+
+  if (!a) {
+    view.innerHTML =
+      '<div class="card"><h1>Unit not found</h1>' +
+      '<p class="hint">No unit matches that identifier.</p>' +
+      '<p><a class="btn" href="dashboard.html">Back to dashboard</a></p></div>';
+    return;
+  }
+
+  var u = a.unit;
+  var latest = a.latest;
+
+  /* ---- header ---- */
+  var head =
+    '<div class="page-head">' +
+      '<div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">' +
+        "<h1 style=\"margin:0\">" + TP.esc(u.name) + "</h1>" +
+        TP.badge(a.operationalStatus) + TP.badge(a.certification) +
+      "</div>" +
+      "<p>" + TP.esc(u.cluster) + ", " + TP.esc(u.state) + " · " +
+        u.lat.toFixed(4) + "° N, " + u.lon.toFixed(4) + "° E · " +
+        TP.esc(u.process) + " · <span class=\"mono\">" + TP.esc(u.udyam) + "</span></p>" +
+    "</div>";
+
+  /* ---- actions ---- */
+  var actions =
+    '<div class="btn-row">' +
+      '<a class="btn primary" href="report.html?u=' + TP.esc(u.slug) + '">Buyer due-diligence report</a>' +
+      (a.certificate && !a.certificate.revoked
+        ? '<a class="btn" href="certificate.html?u=' + TP.esc(u.slug) + '">Certificate</a>'
+        : "") +
+      (a.certificate
+        ? '<a class="btn" href="verify.html?id=' + TP.esc(a.certificate.id) + '">Public verification page</a>'
+        : "") +
+    "</div>";
+
+  /* ---- stat tiles ---- */
+  var tiles =
+    '<div class="grid grid-4">' +
+      '<div class="stat"><div class="label">Operational status</div>' +
+        '<div class="value sm">' + TP.esc(a.operationalStatus) + "</div>" +
+        '<div class="sub">' + TP.PERIOD.days + "-day window</div></div>" +
+      '<div class="stat"><div class="label">Certification</div>' +
+        '<div class="value sm">' + TP.esc(a.certification) + "</div>" +
+        '<div class="sub">' + (a.certificate
+            ? '<span class="mono">' + TP.esc(a.certificate.id) + "</span>"
+            : "No certificate issued") + "</div></div>" +
+      '<div class="stat"><div class="label">Flagged events</div>' +
+        '<div class="value" style="color:' + (a.flaggedCount ? "var(--red)" : "inherit") + '">' +
+          a.flaggedCount + "</div>" +
+        '<div class="sub">Dual-layer confirmed</div></div>' +
+      '<div class="stat"><div class="label">Watch events</div>' +
+        '<div class="value" style="color:' + (a.watchCount ? "var(--amber)" : "inherit") + '">' +
+          a.watchCount + "</div>" +
+        '<div class="sub">Single layer, non-blocking</div></div>' +
+    "</div>";
+
+  /* ---- latest readings ---- */
+  var readings =
+    '<div class="card"><h2>Latest reading — ' + TP.fmtDate(latest.date, "long") + "</h2>" +
+      '<div class="grid grid-4" style="margin-top:14px">' +
+        '<div class="stat"><div class="label">Satellite NDTI</div><div class="value">' +
+          latest.ndti.toFixed(1) + '</div><div class="sub">baseline ' +
+          a.channels.ndti.median.toFixed(1) + "</div></div>" +
+        '<div class="stat"><div class="label">pH</div><div class="value">' +
+          latest.ph.toFixed(2) + '</div><div class="sub">baseline ' +
+          a.channels.ph.median.toFixed(2) + "</div></div>" +
+        '<div class="stat"><div class="label">TDS mg/L</div><div class="value">' +
+          Math.round(latest.tds) + '</div><div class="sub">baseline ' +
+          Math.round(a.channels.tds.median) + "</div></div>" +
+        '<div class="stat"><div class="label">Turbidity NTU</div><div class="value">' +
+          latest.turb.toFixed(1) + '</div><div class="sub">baseline ' +
+          a.channels.turb.median.toFixed(1) + "</div></div>" +
+      "</div></div>";
+
+  /* ---- charts ---- */
+  var charts =
+    '<div class="card"><div class="card-head"><h2>Satellite water-quality index (NDTI)</h2></div>' +
+      '<div class="card-body"><p class="hint" style="margin-bottom:10px">' +
+        "Daily NDTI over the river stretch adjacent to this unit. The dashed line is " +
+        "the unit's own 30-day median, which is what every reading is scored against.</p>" +
+      '<div id="chart-ndti"></div></div></div>' +
+    '<div class="card"><div class="card-head"><h2>Ground sensors — pH · TDS · turbidity</h2></div>' +
+      '<div class="card-body"><p class="hint" style="margin-bottom:10px">' +
+        "Each channel is indexed to its own 30-day median = 100, so three measurements " +
+        "in three different units can share one axis without implying a false comparison.</p>" +
+      '<div id="chart-sensor"></div></div></div>';
+
+  /* ---- event log ---- */
+  var events = a.events.length
+    ? a.events.map(function (e) {
+        return '<div class="event">' +
+          '<div class="event-top">' + TP.badge(e.severity) +
+            '<span class="event-when">' + TP.fmtRange(e.fromIso, e.toIso) + "</span>" +
+            '<span class="event-src">' + TP.esc(e.source) + "</span></div>" +
+          "<p>" + TP.esc(e.description) + "</p>" +
+          '<div class="res">Resolution: ' + TP.esc(e.resolution) + "</div>" +
+        "</div>";
+      }).join("")
+    : '<p class="hint" style="margin:0">No Watch or Flagged events were recorded in this period.</p>';
+
+  var eventCard =
+    '<div class="card"><div class="card-head"><h2>Event log</h2>' +
+      '<span class="hint">Oldest first</span></div>' +
+      '<div class="card-body">' + events + "</div></div>";
+
+  /* ---- insufficient history ---- */
+  var warning = a.enoughHistory ? "" :
+    '<div class="notice" style="border-color:rgba(138,95,14,.35)">' +
+      "<b>Not yet eligible.</b> This unit has " + a.readings.length + " days of paired " +
+      "satellite and sensor history. The method needs " + TP.MIN_HISTORY + " days before a " +
+      "baseline is stable enough to score against, so no status is assigned yet. " +
+      "The absence of findings here is not a clean result — it is an absence of data.</div>";
+
+  view.innerHTML = head + warning + actions + tiles + readings + charts + eventCard;
+
+  TP.renderNdtiChart(document.getElementById("chart-ndti"), a);
+  TP.renderSensorChart(document.getElementById("chart-sensor"), a);
+})();
+</script>
+
+</body>
+</html>

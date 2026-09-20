@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ThreadPass — satellite-verified effluent compliance for MSME dyeing units</title>
+<meta name="description" content="Continuous, independently cross-checked effluent compliance monitoring for MSME textile-dyeing units: free satellite imagery of the receiving river, cross-verified against a low-cost sensor at the unit's own outlet.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<link rel="stylesheet" href="assets/css/landing.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<!-- ───────────────────────── top bar ───────────────────────── -->
+<header class="lp-bar"><div class="wrap">
+  <a class="brand" href="index.html"><b>ThreadPass</b><span>Compliance Monitoring</span></a>
+  <span class="spacer"></span>
+  <a class="btn sm" href="verify.html">Verify a certificate</a>
+  <a class="btn sm primary" id="enter" href="signin.html">Sign in</a>
+</div></header>
+
+<!-- ───────────────────────── hero ───────────────────────── -->
+<section class="hero"><div class="wrap">
+  <div class="eyebrow">Tirupur · Erode · Karur — Noyyal basin</div>
+  <h1>Continuous effluent compliance proof, <em>sized for an MSME dyeing unit</em>.</h1>
+  <p class="lede">
+    Export buyers are moving toward requiring supplier-level environmental data as
+    a condition of sourcing. ThreadPass gives a dyeing unit a continuous,
+    independently cross-checked record of its own treatment performance — free
+    satellite imagery of the receiving river, cross-verified against a low-cost
+    sensor at the unit's own outlet.
+  </p>
+  <div class="btn-row">
+    <a class="btn primary" href="verify.html">Verify a certificate</a>
+    <a class="btn ghost" href="#how">How it works</a>
+  </div>
+  <div class="hero-meta">
+    <div><b>₹7,000–17,400</b>per deployed ground-sensor node</div>
+    <div><b>₹0</b>extra hardware for the satellite layer</div>
+    <div><b>2 layers</b>that must agree before anything is flagged</div>
+    <div><b>30 days</b>baseline, computed per unit</div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── the problem ───────────────────────── -->
+<section class="section"><div class="wrap">
+  <div class="section-head">
+    <div class="kicker">The problem</div>
+    <h2>Compliance is checked periodically. Discharge is not.</h2>
+    <p>Four gaps, and the last one has a deadline attached.</p>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="problem">
+      <h3>Checked, not monitored</h3>
+      <p>Periodic manual sampling is straightforward to time a discharge around.
+         Between visits there is no coverage at all.</p>
+    </div>
+    <div class="problem">
+      <h3>Traced to the plant, not the unit</h3>
+      <p>Shared treatment plants test the combined final outlet. A spike there
+         cannot be traced back to any one unit — which fails the innocent units
+         as much as it shields the responsible one.</p>
+    </div>
+    <div class="problem">
+      <h3>Enterprise tools, enterprise prices</h3>
+      <p>Continuous effluent monitoring already exists. It is priced and
+         engineered for large plants, not for a small dyeing unit's budget.</p>
+    </div>
+    <div class="problem">
+      <h3>A market-access deadline</h3>
+      <p>Units that cannot produce supplier-level compliance data risk losing
+         export orders. For a major employment sector, that is a livelihood
+         problem as much as an environmental one.</p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── how it works ───────────────────────── -->
+<section class="section alt" id="how"><div class="wrap">
+  <div class="section-head">
+    <div class="kicker">How it works</div>
+    <h2>Two layers, chosen because they fail differently</h2>
+    <p>Cloud cover blinds the satellite but not the sensor. A sensor that is
+       unplugged, fouled or bypassed says nothing about the river the satellite
+       is still watching.</p>
+  </div>
+
+  <div class="grid grid-2" style="margin-bottom:26px">
+    <div class="card layer sat">
+      <span class="tag">Layer 1 — satellite</span>
+      <h3>Wide-area, and impossible to schedule around</h3>
+      <p>A published water-quality index (NDTI) is computed from free Sentinel-2
+         multispectral imagery over the river stretch receiving the unit's
+         discharge.</p>
+      <p>It covers the whole stretch continuously, and cannot be evaded by timing
+         a discharge around an inspection — because there is no inspection to
+         time it around.</p>
+    </div>
+    <div class="card layer gnd">
+      <span class="tag">Layer 2 — ground sensor</span>
+      <h3>Attributable to one specific unit</h3>
+      <p>A low-cost node at the unit's own effluent outlet logs pH, total
+         dissolved solids and turbidity.</p>
+      <p>This supplies the one thing satellite imagery cannot: a reading that
+         belongs to <em>this unit</em> rather than to the river in general. A
+         deployed node costs roughly ₹7,000–17,400.</p>
+    </div>
+  </div>
+
+  <div class="rule-band">
+    <h3>The rule that decides everything</h3>
+    <p>Each channel is scored against that unit's own 30-day median, using a
+       robust threshold that a discharge episode cannot inflate. Only sustained
+       runs count. Then the two layers are compared.</p>
+
+    <div class="rule-grid">
+      <div class="rule-card flag">
+        <div class="label">Flagged — a verified violation</div>
+        <p>A satellite excursion <b>and</b> a ground-sensor excursion overlapping
+           in the same time window. Certification is withheld or revoked.</p>
+      </div>
+      <div class="rule-card watch">
+        <div class="label">Watch — disclosed, never a violation</div>
+        <p>One layer only. It could be an upstream discharge that was never this
+           unit's, or cloud cover over the river. Recorded and shown to the
+           buyer — but it does not affect eligibility.</p>
+      </div>
+    </div>
+
+    <p>Requiring both layers to agree is what makes a Flagged event worth acting
+       on. It is equally what protects a compliant unit from being penalised for
+       a discharge that was never theirs.</p>
+  </div>
+
+  <div class="card" style="margin-top:22px">
+    <div class="card-head" style="padding:0 0 13px">
+      <h3 style="margin:0">A flagged event, as the system records it</h3>
+      <span class="hint" id="example-caption"></span>
+    </div>
+    <div id="example-chart"></div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── comparison ───────────────────────── -->
+<section class="section"><div class="wrap">
+  <div class="section-head">
+    <div class="kicker">Where it sits</div>
+    <h2>Against what a unit can do today</h2>
+  </div>
+
+  <div class="table-scroll">
+    <table class="compare">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Periodic manual sampling</th>
+          <th>Enterprise continuous monitoring</th>
+          <th class="tp-col">ThreadPass</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>Traceable to a single unit</th>
+          <td><b>No</b>Shared plant outlet only</td>
+          <td><b>Yes</b></td>
+          <td class="tp-col"><b>Yes</b>Sensor at the unit's own outlet</td>
+        </tr>
+        <tr>
+          <th>Tamper and evasion resistance</th>
+          <td><b>Low</b>Discharge can be timed around a visit</td>
+          <td><b>High</b></td>
+          <td class="tp-col"><b>High</b>Two layers must agree; sensor downtime during a satellite anomaly is itself treated as suspicious</td>
+        </tr>
+        <tr>
+          <th>Export-buyer readiness</th>
+          <td><b>Low</b>Ad-hoc self-reported paperwork</td>
+          <td><b>High</b>Standardised</td>
+          <td class="tp-col"><b>High</b>Structured report, certificate, and a public verification page</td>
+        </tr>
+        <tr>
+          <th>Cost viability for an MSME</th>
+          <td><b>Affordable</b></td>
+          <td><b>Prohibitive</b>Priced for large plants</td>
+          <td class="tp-col"><b>Affordable</b>₹7,000–17,400 per node; no per-unit satellite hardware</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="compare-note">
+    The gap is not the sensing technique — satellite indices and water-quality
+    sensors are both established. It is the absence of an <b>MSME-sized</b>
+    combination of the two, framed as <b>voluntary self-monitoring rather than
+    policing</b>, so that a unit has a reason to adopt it rather than resist it.
+  </div>
+</div></section>
+
+<!-- ───────────────────────── what it produces ───────────────────────── -->
+<section class="section alt"><div class="wrap">
+  <div class="section-head">
+    <div class="kicker">What it produces</div>
+    <h2>Three things a buyer can actually use</h2>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card">
+      <h3>Certificate of effluent compliance</h3>
+      <p class="hint">One page. Certificate ID, the period covered, verified
+        violations and watch observations stated separately, and a QR code that
+        resolves to the public verification page.</p>
+    </div>
+    <div class="card">
+      <h3>Buyer due-diligence report</h3>
+      <p class="hint">Three pages. A plain-English summary, both monitoring
+        layers charted with every excursion marked, and a complete event log —
+        each entry with its resolution recorded.</p>
+    </div>
+    <div class="card">
+      <h3>Public verification page</h3>
+      <p class="hint">No account needed. Confirms whether a certificate is
+        genuine and still valid, and reflects any later revocation — so a
+        withdrawn certificate cannot keep being presented as current.</p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── audiences ───────────────────────── -->
+<section class="section"><div class="wrap">
+  <div class="section-head">
+    <div class="kicker">Who it is for</div>
+    <h2>Two customers, and the unit is not the one paying</h2>
+    <p>The buyer pays, first and structurally — not the MSME unit, and not
+       government.</p>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card aud">
+      <h3>For the MSME dyeing unit</h3>
+      <ul>
+        <li><b>A record you hold.</b> Framed as self-monitoring you choose to
+            show a buyer — protection, not surveillance.</li>
+        <li><b>Evidence when you are compliant.</b> Closure notices and lost
+            orders on paperwork grounds are a real risk even where treatment
+            practice is sound.</li>
+        <li><b>Within reach.</b> ₹7,000–17,400 per node, with no per-unit cost
+            for the satellite layer.</li>
+        <li><b>Watch events do not punish you.</b> An uncorroborated reading is
+            disclosed, not counted against you.</li>
+      </ul>
+    </div>
+    <div class="card aud">
+      <h3>For the export-facing buyer</h3>
+      <ul>
+        <li><b>Supplier-level environmental data</b> in a consistent, structured
+            format rather than ad-hoc self-reported paperwork.</li>
+        <li><b>Coverage between audits.</b> A continuous record in the gaps
+            where site visits see nothing.</li>
+        <li><b>Independent verification.</b> Scan the certificate; the public
+            page confirms it, including if it has since been revoked.</li>
+        <li><b>Onboard a supplier base</b> through an existing relationship
+            rather than unit-by-unit cold outreach.</li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── honesty ───────────────────────── -->
+<section class="section alt"><div class="wrap">
+  <div class="section-head">
+    <div class="kicker">Stated plainly</div>
+    <h2>What this does not claim</h2>
+    <p>A compliance record that overstates itself is worth less than one that
+       does not, so these are on the front page rather than in a footnote.</p>
+  </div>
+
+  <div class="honest">
+    <h3>Scope and status</h3>
+    <p><b>Cluster and outlet-level monitoring, not pipe-level forensic proof.</b>
+       It will not establish which of two adjacent units released a given litre
+       of effluent, and it is not designed to.</p>
+    <p><b>Not a regulatory or statutory certification.</b> It confers no legal
+       compliance status. It sits alongside the existing regulatory framework
+       rather than replacing or duplicating it.</p>
+    <p><b>A water-quality and compliance tool, not a climate technology</b>, and
+       not presented as one. The genuine indirect link is that enforcing existing
+       Zero Liquid Discharge and effluent-reuse mandates depends on reliable
+       monitoring, which this supports.</p>
+    <p><b>Phase 0 was run against three years of already-published government
+       water-quality data</b> for a Noyyal-basin station, rather than against
+       assumed figures. The result was mixed, and is reported as mixed.</p>
+    <p><b>No anchor buyer has signed on yet.</b> The go-to-market route through
+       an export-facing buyer is a plan with sector precedent, not evidence that
+       it is already working.</p>
+    <p style="margin-bottom:0"><b>And this build in particular is a
+       demonstration.</b> Every reading on this site is simulated and the unit
+       names are fictional. What is real is the method — the baseline, the
+       threshold, the sustained-run rule and the dual-layer correlation all run
+       exactly as described, on generated data.</p>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── closing ───────────────────────── -->
+<section class="cta"><div class="wrap">
+  <h2>See it working</h2>
+  <p>Sign in to the monitoring dashboard, or check a certificate the way a buyer
+     would — no account needed for that.</p>
+  <div class="btn-row">
+    <a class="btn primary" id="enter-2" href="signin.html">Sign in to the dashboard</a>
+    <a class="btn ghost" href="verify.html">Verify a certificate</a>
+  </div>
+</div></section>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/charts.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  TP.renderFooter();
+
+  /* If someone is already signed in, both buttons should say so. */
+  var session = TP.session();
+  if (session) {
+    ["enter", "enter-2"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.href = "dashboard.html";
+      el.textContent = id === "enter" ? "Dashboard" : "Go to the dashboard";
+    });
+  }
+
+  /* A real detection from the demonstration cluster, rendered by the same
+     chart code the dashboard uses — not a picture of one. */
+  var example = TP.byUnitSlug("velan");
+  if (example) {
+    document.getElementById("example-caption").textContent =
+      example.unit.name + " · demonstration cluster, simulated data";
+
+    var positions = {};
+    example.readings.forEach(function (r, i) { positions[r.dayIndex] = i; });
+
+    TP.lineChart(document.getElementById("example-chart"), {
+      dates: example.readings.map(function (r) { return r.date; }),
+      series: [{ label: "NDTI", values: example.channels.ndti.values, color: "var(--series-sat)" }],
+      bands: example.events
+        .filter(function (e) { return e.channels.indexOf("ndti") !== -1; })
+        .map(function (e) {
+          return { i0: positions[e.from], i1: positions[e.to],
+                   severity: e.severity, label: e.severity.toUpperCase() };
+        }),
+      baseline: example.channels.ndti.median,
+      format: function (v) { return v.toFixed(1); },
+      ariaLabel: "Satellite NDTI for " + example.unit.name +
+                 ", with the dual-confirmed flagged window marked",
+      height: 230,
+      table: false
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

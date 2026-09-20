@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Admin — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<main class="page">
+  <div class="wrap stack" id="view"></div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var session = TP.requireSession({ monitorOnly: true });
+  if (!session) return;
+
+  TP.renderChrome("admin", session);
+  TP.renderFooter();
+
+  var view = document.getElementById("view");
+
+  function render() {
+    var all = TP.analyseAll();
+    var overrides = TP.overrides();
+
+    var rows = all.map(function (a) {
+      var u = a.unit;
+      var c = a.certificate;
+      var overridden = overrides[u.slug];
+
+      var action;
+      if (!a.enoughHistory) {
+        action = '<span class="hint">Awaiting 30-day history</span>';
+      } else if (a.certification === "Under Review") {
+        action = '<span class="hint">Flagged — no certificate to act on</span>';
+      } else if (a.certification === "Revoked") {
+        action = '<button class="btn sm" data-act="active" data-unit="' + TP.esc(u.slug) +
+                 '" type="button">Reinstate</button>';
+      } else {
+        action = '<button class="btn sm danger" data-act="revoked" data-unit="' + TP.esc(u.slug) +
+                 '" type="button">Revoke</button>';
+      }
+
+      return "<tr>" +
+        '<td><a class="row-link" href="unit.html?u=' + TP.esc(u.slug) + '">' + TP.esc(u.name) + "</a>" +
+          '<div class="hint">' + TP.esc(u.cluster) + "</div></td>" +
+        "<td>" + (c ? '<span class="mono" style="font-size:.8rem">' + TP.esc(c.id) + "</span>"
+                    : '<span class="hint">None issued</span>') + "</td>" +
+        "<td>" + TP.badge(a.operationalStatus) + "</td>" +
+        "<td>" + TP.badge(a.certification) +
+          (overridden ? '<div class="hint">Set manually</div>' : "") + "</td>" +
+        '<td class="num">' + a.flaggedCount + "</td>" +
+        '<td class="num">' + a.watchCount + "</td>" +
+        "<td>" + action + "</td>" +
+      "</tr>";
+    }).join("");
+
+    view.innerHTML =
+      '<div class="page-head"><h1>Certificate administration</h1>' +
+        "<p>Issue state is derived from the monitoring data. A Monitor can " +
+        "override it in either direction, and every override is visible below.</p></div>" +
+
+      '<div class="card flush">' +
+        '<div class="card-head"><h2>Units</h2>' +
+          '<span class="hint">' + all.length + " units</span></div>" +
+        '<div class="table-scroll"><table class="data"><thead><tr>' +
+          "<th>Unit</th><th>Certificate</th><th>Operational</th><th>Certification</th>" +
+          '<th class="num">Flagged</th><th class="num">Watch</th><th>Action</th>' +
+        "</tr></thead><tbody>" + rows + "</tbody></table></div></div>" +
+
+      '<div class="card">' +
+        "<h2>Accounts</h2>" +
+        '<p class="hint">Accounts are invitation-only. This build ships a fixed ' +
+          "list; there is no self-registration.</p>" +
+        '<div class="table-scroll"><table class="data"><thead><tr>' +
+          "<th>Email</th><th>Role</th><th>Sees</th></tr></thead><tbody>" +
+          TP.ACCOUNTS.map(function (acc) {
+            return "<tr><td class=\"mono\" style=\"font-size:.8rem\">" + TP.esc(acc.email) + "</td>" +
+              "<td>" + TP.esc(acc.role === "MONITOR" ? "Monitor" : "Textile unit") + "</td>" +
+              "<td>" + TP.esc(acc.role === "MONITOR" ? "Entire cluster" : acc.label) + "</td></tr>";
+          }).join("") +
+        "</tbody></table></div></div>" +
+
+      '<div class="notice"><b>Overrides are stored in this browser only.</b> ' +
+        "They persist across reloads but are not shared with anyone else and will " +
+        "disappear if site data is cleared. In a served build this is a database " +
+        "table with the Monitor's name and a timestamp against every decision — " +
+        "which is what makes a revocation auditable rather than merely asserted." +
+        ' <button class="btn sm" id="reset" type="button" style="margin-top:10px">' +
+        "Clear all overrides</button></div>";
+
+    view.querySelectorAll("button[data-unit]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var slug = btn.getAttribute("data-unit");
+        var act = btn.getAttribute("data-act");
+        var unit = TP.byUnitSlug(slug);
+        var what = act === "revoked" ? "Revoke" : "Reinstate";
+
+        if (!confirm(what + " the certificate for " + unit.unit.name + "?")) return;
+        TP.setOverride(slug, act);
+        render();
+      });
+    });
+
+    document.getElementById("reset").addEventListener("click", function () {
+      if (!confirm("Clear every manual override and return to the derived state?")) return;
+      Object.keys(TP.overrides()).forEach(function (slug) { TP.setOverride(slug, null); });
+      render();
+    });
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>

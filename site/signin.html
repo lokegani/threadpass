@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in — ThreadPass compliance monitoring</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  /* Set the theme before first paint so the page never flashes light then dark. */
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div class="auth-screen">
+  <div class="auth-card">
+
+    <div class="auth-head">
+      <div class="eyebrow">ThreadPass Access</div>
+      <h1>Sign in</h1>
+      <p class="hint" style="margin-top:6px">
+        <a href="index.html">← Back to ThreadPass</a>
+      </p>
+    </div>
+
+    <div class="card">
+      <p class="hint" style="margin-bottom:16px">
+        Monitors see the whole cluster. Textile Unit accounts see only their own
+        unit's report and certificate. Accounts are created by invitation only.
+      </p>
+
+      <div id="error" class="alert" hidden></div>
+
+      <form id="signin" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="username" spellcheck="false" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn primary" type="submit" style="width:100%; justify-content:center">
+          Sign in
+        </button>
+      </form>
+
+      <details class="accounts">
+        <summary>Demonstration accounts</summary>
+        <p class="hint" style="margin:8px 0 0">
+          Click any row to fill the form. Every account uses the password
+          <span class="mono">ThreadPass#2026</span>.
+        </p>
+        <table id="account-list"></table>
+      </details>
+    </div>
+
+    <p class="hint" style="text-align:center; margin-top:16px">
+      Buyers verifying a certificate can use the
+      <a href="verify.html">public verification page</a> without an account.
+    </p>
+
+    <div class="notice" style="margin-top:18px">
+      <b>Demonstration build.</b> All satellite and sensor readings are simulated
+      and unit names are fictional. Sign-in here is a role selector for the demo,
+      not real authentication — see the note at the top of
+      <span class="mono">assets/js/auth.js</span>.
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* Already signed in? Go straight through. */
+  if (TP.session()) { location.replace("dashboard.html"); return; }
+
+  var emailEl = document.getElementById("email");
+  var passEl = document.getElementById("password");
+  var errorEl = document.getElementById("error");
+
+  /* Demo account picker */
+  document.getElementById("account-list").innerHTML = TP.ACCOUNTS.map(function (a) {
+    return '<tr data-email="' + TP.esc(a.email) + '">' +
+             "<td>" + TP.esc(a.email) + "</td>" +
+             "<td>" + TP.esc(a.label) + "</td>" +
+           "</tr>";
+  }).join("");
+
+  document.getElementById("account-list").addEventListener("click", function (evt) {
+    var row = evt.target.closest("tr[data-email]");
+    if (!row) return;
+    emailEl.value = row.getAttribute("data-email");
+    passEl.value = TP.PASSWORD;
+    passEl.focus();
+  });
+
+  document.getElementById("signin").addEventListener("submit", function (evt) {
+    evt.preventDefault();
+    errorEl.hidden = true;
+
+    var result = TP.signIn(emailEl.value, passEl.value);
+    if (!result.ok) {
+      errorEl.textContent = result.error;
+      errorEl.hidden = false;
+      return;
+    }
+
+    /* A unit account with no monitoring history yet lands on the holding page. */
+    if (result.session.role === "UNIT") {
+      var analysis = TP.byUnitSlug(result.session.unit);
+      if (analysis && !analysis.enoughHistory) { location.href = "pending.html"; return; }
+    }
+    location.href = "dashboard.html";
+  });
+})();
+</script>
+
+</body>
+</html>

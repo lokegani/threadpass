@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Palette check — ThreadPass</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<style>
+  .swatches { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .sw { display: flex; align-items: center; gap: 7px; font-size: .8rem; }
+  .sw i { width: 26px; height: 14px; border-radius: 3px; border: 1px solid var(--border); }
+  .res { font-size: .86rem; line-height: 1.7; }
+  .res li { margin-bottom: 3px; }
+  .verdict { font-weight: 700; }
+  .verdict.pass { color: var(--teal); }
+  .verdict.fail { color: var(--red); }
+</style>
+</head>
+<body>
+
+<main class="page">
+  <div class="wrap stack" style="max-width:860px">
+
+    <div class="page-head">
+      <h1>Palette check</h1>
+      <p>Runs the computable colour checks against the chart colours actually
+         defined in <span class="mono">assets/css/styles.css</span> — it reads the
+         live CSS variables rather than a copy of the hex values, so it cannot
+         drift out of date when you change them.</p>
+    </div>
+
+    <div id="out" class="stack"></div>
+
+    <div class="notice">
+      <b>What this does not check.</b> Two of the six rules are structural, not
+      measurable from colour alone: that categorical hues are assigned in a fixed
+      order and never cycled, and that the values come from a documented palette.
+      Those stay your responsibility.
+      <br><br>
+      This <span class="mono">tools</span> folder is a development aid. It is safe
+      to delete before deploying.
+    </div>
+
+  </div>
+</main>
+
+<script type="module">
+import { validate, contrast } from "./validate_palette.mjs";
+
+/* Read the real values out of the stylesheet, via a probe element carrying the
+   same class the charts actually sit inside. */
+function readTheme(theme, className) {
+  const root = document.documentElement;
+  const previous = root.getAttribute("data-theme");
+
+  if (theme === "dark") root.setAttribute("data-theme", "dark");
+  else root.removeAttribute("data-theme");
+
+  const probe = document.createElement("div");
+  probe.className = className;
+  document.body.appendChild(probe);
+  const style = getComputedStyle(probe);
+
+  const read = (name) => style.getPropertyValue(name).trim();
+  const values = {
+    ph:   read("--series-1"),
+    tds:  read("--series-2"),
+    turb: read("--series-3"),
+    ndti: read("--series-sat"),
+    surface: toHex(style.backgroundColor)
+  };
+
+  probe.remove();
+  if (previous) root.setAttribute("data-theme", previous);
+  else root.removeAttribute("data-theme");
+  return values;
+}
+
+function toHex(rgb) {
+  const m = rgb.match(/\d+/g);
+  if (!m) return "#ffffff";
+  return "#" + m.slice(0, 3).map(n => (+n).toString(16).padStart(2, "0")).join("");
+}
+
+const GLYPH = { true: "PASS", pass: "PASS", false: "FAIL", fail: "FAIL",
+                relief: "RELIEF", floor: "FLOOR" };
+
+function section(title, note, values, mode) {
+  /* The three sensor channels share one chart, so every pair of them is
+     directly comparable — that is the all-pairs case, not adjacent-only. */
+  const trio = [values.ph, values.tds, values.turb];
+  const result = validate(trio, { mode, surface: values.surface, pairs: "all" });
+  const ndtiContrast = contrast(values.ndti, values.surface);
+
+  const rows = result.report.map(([name, state, detail]) =>
+    `<li><b>${GLYPH[state] ?? state}</b> — ${name}: ${detail}</li>`).join("");
+
+  const swatches = [
+    ["pH", values.ph], ["TDS", values.tds], ["Turbidity", values.turb],
+    ["NDTI", values.ndti], ["surface", values.surface]
+  ].map(([label, hex]) =>
+    `<span class="sw"><i style="background:${hex}"></i>${label}
+     <span class="mono" style="color:var(--faint)">${hex}</span></span>`).join("");
+
+  return `<div class="card">
+    <h2>${title}</h2>
+    <p class="hint">${note}</p>
+    <div class="swatches">${swatches}</div>
+    <p class="verdict ${result.ok ? "pass" : "fail"}" style="margin:10px 0 4px">
+      Sensor trio: ${result.ok ? "all checks pass" : "FAILED — fix the marked checks"}</p>
+    <ul class="res">${rows}</ul>
+    <p class="hint" style="margin-top:10px">
+      <b>NDTI</b> is the only series on its own chart, so it needs no colour
+      separation from anything — only contrast against the surface, which is
+      <b>${ndtiContrast.toFixed(2)}:1</b>
+      ${ndtiContrast >= 3 ? "(clears 3:1)" : "(below 3:1 — needs a visible label)"}.
+    </p>
+  </div>`;
+}
+
+const out = document.getElementById("out");
+out.innerHTML =
+  section("Light theme", "Charts on a white card.",
+          readTheme("light", "card"), "light") +
+  section("Dark theme", "Charts on the dark card surface.",
+          readTheme("dark", "card"), "dark") +
+  section("Printed documents", "Reports and certificates always print on white, whatever theme is on screen.",
+          readTheme("light", "paper"), "light");
+</script>
+
+</body>
+</html>

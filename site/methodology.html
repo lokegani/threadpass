@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Methodology — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<main class="page">
+  <div class="wrap stack">
+
+    <div class="page-head">
+      <h1>How a ThreadPass finding is produced</h1>
+      <p>Written out in full, because a compliance record nobody can audit is
+         worth very little to the buyer reading it.</p>
+    </div>
+
+    <div class="card">
+      <h2>Two layers, deliberately independent</h2>
+      <p><b>Layer 1 — satellite.</b> A published water-quality index, NDTI, is
+         computed from free Sentinel-2 multispectral imagery over the river
+         stretch that receives this unit's discharge. It covers the whole
+         stretch continuously and cannot be evaded by timing a discharge around
+         an inspection visit, because there is no visit to time it around.</p>
+      <p><b>Layer 2 — ground sensor.</b> A low-cost node at the unit's own
+         effluent outlet logs pH, total dissolved solids and turbidity. This
+         supplies the one thing satellite imagery cannot: a reading attributable
+         to <em>this specific unit</em> rather than to the river in general.</p>
+      <p class="hint" style="margin-bottom:0">The layers are useful precisely
+         because they fail differently. Cloud cover blinds the satellite but not
+         the sensor. A sensor that is unplugged, fouled or bypassed says nothing
+         about the river the satellite is still watching.</p>
+    </div>
+
+    <div class="card">
+      <h2>Each channel is scored against its own baseline</h2>
+      <p>There is no fixed threshold that applies to every unit. A mercerising
+         line and a bleaching-and-scouring line have genuinely different normal
+         ranges, and a single national limit would flag the wrong one. Every
+         channel is therefore scored against <b>its own 30-day median</b>.</p>
+      <p>Spread is measured with <b>MAD — the median absolute deviation</b> —
+         rescaled by 1.4826 so it estimates the same quantity a standard
+         deviation would for well-behaved data.</p>
+      <div class="notice">
+        <b>Why not a standard deviation?</b> Because the thing we are trying to
+        detect would corrupt it. A four-day discharge episode inflates the
+        standard deviation of the very series it appears in, widening the
+        "normal" band until the episode sits comfortably inside it. A median of
+        absolute deviations does not move like that: a handful of extreme values
+        cannot drag it, which is the entire reason it is used here.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Only sustained departures count</h2>
+      <p>A reading must sit at least <b id="thr"></b> robust standard deviations
+         from the unit's own median, and must stay there for <b id="run"></b> or
+         more consecutive days, before it is recorded as an excursion at all.</p>
+      <p class="hint" style="margin-bottom:0">A single odd day is a cloud edge, a
+         passing boat, a sensor settling after maintenance. Two consecutive days
+         is a pattern. This rule discards most of what would otherwise be noise,
+         at the cost of missing a genuine single-day event — a trade made
+         deliberately, in favour of not crying wolf.</p>
+    </div>
+
+    <div class="card">
+      <h2>The rule that decides everything</h2>
+      <div class="table-scroll">
+        <table class="data">
+          <thead><tr><th>What was observed</th><th>What ThreadPass records</th><th>Effect on eligibility</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>A satellite excursion <b>and</b> a sensor excursion overlapping in the same window</td>
+              <td><span class="badge flag">Flagged</span></td>
+              <td>A verified violation. Certification is withheld or revoked.</td>
+            </tr>
+            <tr>
+              <td>A satellite excursion with nothing on the ground</td>
+              <td><span class="badge watch">Watch</span></td>
+              <td>None. Disclosed in the report, does not affect eligibility.</td>
+            </tr>
+            <tr>
+              <td>A sensor excursion with nothing overhead</td>
+              <td><span class="badge watch">Watch</span></td>
+              <td>None. Disclosed in the report, does not affect eligibility.</td>
+            </tr>
+            <tr>
+              <td>Fewer than 30 days of paired history</td>
+              <td><span class="badge neutral">Not Yet Eligible</span></td>
+              <td>No verdict is offered. Absence of findings is not a clean result.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin:14px 0 0">
+        Requiring both layers to agree is what makes a Flagged event worth acting
+        on. It is also what protects a compliant unit from being penalised for a
+        discharge that was never theirs.</p>
+    </div>
+
+    <div class="card">
+      <h2>What this system does not claim</h2>
+      <p>It is <b>cluster and outlet-level monitoring, not pipe-level forensic
+         proof</b>. It will not establish which of two adjacent units released a
+         given litre of effluent, and it is not designed to.</p>
+      <p>It is a <b>self-monitoring and disclosure record</b> the unit holds and
+         chooses to show a buyer — not an enforcement instrument, and not a
+         regulatory or statutory certification. It confers no legal compliance
+         status.</p>
+      <p style="margin-bottom:0">It is <b>a water-quality and compliance tool,
+         not a climate technology</b>, and is not presented as one. The genuine
+         indirect connection is that enforcement of existing Zero Liquid
+         Discharge and effluent-reuse mandates depends on reliable monitoring,
+         which this supports rather than replaces.</p>
+    </div>
+
+    <div class="notice">
+      <b>And in this build specifically:</b> every reading is simulated. No
+      satellite imagery is fetched and no sensor exists. The unit names and
+      registration numbers are fictional. What is real here is the method — the
+      baseline, the MAD threshold, the sustained-run rule and the dual-layer
+      correlation all run exactly as described above on the generated data.
+    </div>
+
+  </div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+  var session = TP.requireSession();
+  if (!session) return;
+  TP.renderChrome("methodology", session);
+  TP.renderFooter();
+  document.getElementById("thr").textContent = TP.THRESHOLD_SD.toFixed(1);
+  document.getElementById("run").textContent = TP.MIN_RUN_DAYS;
+})();
+</script>
+
+</body>
+</html>

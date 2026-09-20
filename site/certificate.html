@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Certificate — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<style>
+  .cert-mark { text-align: center; margin-bottom: 26px; }
+  .cert-mark b { font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em; }
+  .cert-mark div { font-size: .72rem; color: #5C6B75; }
+
+  .cert-title {
+    text-align: center; font-size: 1.05rem; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase; margin-bottom: 5px;
+  }
+  .cert-protocol {
+    text-align: center; font-size: .74rem; color: #5C6B75;
+    margin-bottom: 30px; font-style: italic;
+  }
+  .cert-awarded {
+    text-align: center; font-size: .78rem; color: #5C6B75;
+    text-transform: uppercase; letter-spacing: .11em; margin-bottom: 10px;
+  }
+  .cert-unit {
+    text-align: center; font-size: 2rem; font-weight: 700;
+    letter-spacing: -.025em; margin-bottom: 8px; line-height: 1.15;
+  }
+  .cert-meta { text-align: center; font-size: .82rem; color: #5C6B75; margin-bottom: 28px; }
+  .cert-body {
+    font-size: .85rem; line-height: 1.7; text-align: justify;
+    margin-bottom: 28px; padding: 0 6mm;
+  }
+  .cert-rule { border: 0; border-top: 1px solid #DCE3E0; margin: 0 0 22px; }
+
+  .cert-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px 20px; margin-bottom: 30px;
+  }
+  .cert-cell .label {
+    font-size: .58rem; text-transform: uppercase; letter-spacing: .1em;
+    color: #8695A0; font-weight: 700; margin-bottom: 3px;
+  }
+  .cert-cell .value { font-size: .92rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .cert-cell .value.count { font-size: 1.35rem; font-weight: 700; }
+
+  .cert-foot {
+    display: flex; gap: 22px; align-items: flex-start;
+    justify-content: space-between; margin-top: 8px;
+  }
+  .cert-qr { text-align: center; flex: none; }
+  .cert-qr .cap {
+    font-size: .6rem; color: #8695A0; margin-top: 5px;
+    text-transform: uppercase; letter-spacing: .07em; font-weight: 700;
+  }
+  .cert-verify { font-size: .72rem; color: #5C6B75; flex: 1; }
+  .cert-verify .url {
+    font-family: var(--mono); font-size: .66rem; word-break: break-all;
+    color: #17242E; display: block; margin-top: 5px;
+  }
+  .cert-sign { text-align: right; flex: none; align-self: flex-end; }
+  .cert-sign .line { border-top: 1px solid #17242E; width: 52mm; margin-bottom: 5px; }
+  .cert-sign .who { font-size: .7rem; color: #5C6B75; }
+
+  .cert-void {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    pointer-events: none;
+  }
+  .cert-void span {
+    transform: rotate(-24deg);
+    font-size: 4.2rem; font-weight: 800; letter-spacing: .1em;
+    color: rgba(168,52,42,.13); border: 6px solid rgba(168,52,42,.13);
+    padding: 10px 40px; border-radius: 12px;
+  }
+
+  @media (max-width: 760px) {
+    .cert-grid { grid-template-columns: repeat(2, 1fr); }
+    .cert-foot { flex-direction: column; align-items: stretch; }
+    .cert-sign { text-align: left; align-self: flex-start; margin-top: 18px; }
+    .cert-unit { font-size: 1.5rem; }
+  }
+</style>
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="doc-bar no-print"><div class="wrap">
+  <div class="hint" id="doc-label"></div>
+  <div class="btn-row">
+    <a class="btn" id="back" href="dashboard.html">Back</a>
+    <a class="btn" id="verify-link" href="verify.html">Verification page</a>
+    <button class="btn primary" type="button" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</div></div>
+
+<div id="doc"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/qr.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var session = TP.requireSession();
+  if (!session) return;
+
+  TP.renderChrome("dashboard", session);
+
+  var slug = TP.query("u");
+  if (session.role === "UNIT") slug = session.unit;
+
+  var a = slug ? TP.byUnitSlug(slug) : null;
+  var doc = document.getElementById("doc");
+
+  if (!a || !a.certificate) {
+    doc.innerHTML = '<div class="wrap page"><div class="card">' +
+      "<h1>No certificate</h1>" +
+      '<p class="hint">' + (a
+        ? TP.esc(a.unit.name) + " does not currently hold a ThreadPass certificate. " +
+          "Current certification status: " + TP.esc(a.certification) + "."
+        : "No unit matches that identifier.") + "</p>" +
+      '<p><a class="btn" href="dashboard.html">Back to dashboard</a></p></div></div>';
+    return;
+  }
+
+  var u = a.unit, c = a.certificate;
+
+  document.getElementById("doc-label").textContent = "Certificate — " + u.name;
+  document.getElementById("back").href = "unit.html?u=" + encodeURIComponent(u.slug);
+  document.getElementById("verify-link").href = "verify.html?id=" + encodeURIComponent(c.id);
+
+  /* An absolute URL, so the code still resolves when the page is scanned from
+     paper. On a laptop this is a localhost address, which a phone on another
+     device cannot reach — that only becomes a real link once deployed. */
+  var verifyUrl = location.origin +
+    location.pathname.replace(/[^/]*$/, "") + "verify.html?id=" + c.id;
+
+  var watchClause = c.watch
+    ? c.watch + " single-layer Watch observation" + (c.watch === 1 ? " was" : "s were") +
+      " recorded and disclosed; under the ThreadPass rule, uncorroborated " +
+      "observations do not constitute a violation and do not affect eligibility."
+    : "No Watch observations were recorded in this period.";
+
+  var body =
+    "This is to certify that, over the monitoring period " +
+    TP.fmtDate(c.periodStart, "long") + " to " + TP.fmtDate(c.periodEnd, "long") +
+    ", no verified effluent discharge violations were detected at the above " +
+    "facility. Satellite-derived NDTI water-quality observations of the adjacent " +
+    "river stretch were cross-verified against ground-sensor readings of pH, total " +
+    "dissolved solids and turbidity. No excursion was corroborated across both " +
+    "independent layers within a matching time window. " + watchClause;
+
+  function cell(label, value, cls) {
+    return '<div class="cert-cell"><div class="label">' + TP.esc(label) + "</div>" +
+      '<div class="value ' + (cls || "") + '">' + value + "</div></div>";
+  }
+
+  doc.innerHTML =
+    '<div class="paper">' +
+      (c.revoked ? '<div class="cert-void"><span>REVOKED</span></div>' : "") +
+
+      '<div class="cert-mark"><b>ThreadPass</b>' +
+        "<div>Satellite + ground-sensor effluent compliance monitoring</div></div>" +
+
+      '<div class="cert-title">Certificate of Effluent Compliance</div>' +
+      '<div class="cert-protocol">Issued under the ThreadPass dual-verification protocol</div>' +
+
+      '<div class="cert-awarded">This certificate is awarded to</div>' +
+      '<div class="cert-unit">' + TP.esc(u.name) + "</div>" +
+      '<div class="cert-meta">' + TP.esc(u.cluster) + ", " + TP.esc(u.state) + ", India · " +
+        u.lat.toFixed(4) + "° N, " + u.lon.toFixed(4) + "° E<br>" +
+        TP.esc(u.process) + " · MSME " + TP.esc(u.udyam) + "</div>" +
+
+      '<div class="cert-body">' + TP.esc(body) + "</div>" +
+
+      '<hr class="cert-rule">' +
+
+      '<div class="cert-grid">' +
+        cell("Certificate ID", '<span class="mono">' + TP.esc(c.id) + "</span>") +
+        cell("Period covered", TP.fmtDate(c.periodStart) + " – " + TP.fmtDate(c.periodEnd, "long")) +
+        cell("Issue date", TP.fmtDate(c.issued, "long")) +
+        cell("Valid until", TP.fmtDate(c.validUntil, "long")) +
+        cell("Verified violations", String(c.violations), "count") +
+        cell("Watch observations (non-blocking)", String(c.watch), "count") +
+      "</div>" +
+
+      '<div class="cert-foot">' +
+        '<div class="cert-qr">' +
+          TP.qrSvg(verifyUrl, { width: 104, label: "Scan to verify certificate " + c.id }) +
+          '<div class="cap">Scan to verify</div>' +
+        "</div>" +
+        '<div class="cert-verify">The public verification page confirms whether this ' +
+          "certificate is genuine and currently valid, and reflects any later " +
+          "revocation." +
+          '<span class="url">' + TP.esc(verifyUrl) + "</span></div>" +
+        '<div class="cert-sign"><div class="line"></div>' +
+          '<div class="who">ThreadPass Monitoring Authority<br>(simulated)</div></div>' +
+      "</div>" +
+
+      '<div class="doc-foot">ThreadPass is a demonstration monitoring system ' +
+        "operating on simulated satellite and sensor data. This document is not a " +
+        "regulatory or statutory certification and confers no legal compliance status." +
+      "</div>" +
+    "</div>";
+})();
+</script>
+
+</body>
+</html>

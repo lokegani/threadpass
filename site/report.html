@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Compliance report — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<div class="doc-bar no-print"><div class="wrap">
+  <div class="hint" id="doc-label"></div>
+  <div class="btn-row">
+    <a class="btn" id="back" href="dashboard.html">Back</a>
+    <button class="btn primary" type="button" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</div></div>
+
+<div id="doc"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/charts.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var session = TP.requireSession();
+  if (!session) return;
+
+  TP.renderChrome("dashboard", session);
+
+  var slug = TP.query("u");
+  if (session.role === "UNIT") slug = session.unit;
+
+  var a = slug ? TP.byUnitSlug(slug) : null;
+  var doc = document.getElementById("doc");
+
+  if (!a) {
+    doc.innerHTML = '<div class="wrap page"><div class="card"><h1>Unit not found</h1>' +
+      '<p><a class="btn" href="dashboard.html">Back to dashboard</a></p></div></div>';
+    return;
+  }
+
+  var u = a.unit;
+  var latest = a.latest;
+  document.getElementById("doc-label").textContent =
+    "Buyer due-diligence report — " + u.name;
+  document.getElementById("back").href = "unit.html?u=" + encodeURIComponent(u.slug);
+
+  function head(page) {
+    return '<div class="doc-head"><span>ThreadPass Compliance Report · ' +
+      TP.esc(u.name) + "</span><span>Page " + page + " of 3</span></div>";
+  }
+
+  function foot() {
+    return '<div class="doc-foot">' + TP.esc(TP.DISCLAIMER) + "</div>";
+  }
+
+  /* ---- status rationale ---- */
+  var rationale;
+  if (!a.enoughHistory) {
+    rationale = "Only " + a.readings.length + " days of paired history are available, " +
+      "short of the " + TP.MIN_HISTORY + " days required before a baseline is stable " +
+      "enough to score against. No status is assigned.";
+  } else if (a.flaggedCount) {
+    rationale = a.events.filter(function (e) { return e.severity === "Flagged"; })
+      .map(function (e) {
+        var sensors = e.channels.filter(function (c) { return c !== "ndti"; })
+          .map(function (c) { return TP.CHANNEL_LABEL[c]; }).join(", ");
+        return "Satellite NDTI excursion " + TP.fmtRange(e.fromIso, e.toIso) +
+          " overlaps a ground-sensor excursion (" + sensors + ") in the same window.";
+      }).join(" ");
+  } else if (a.watchCount) {
+    rationale = "No excursion was corroborated across both layers at any point in the " +
+      "period. " + a.watchCount + " single-layer observation" + (a.watchCount === 1 ? "" : "s") +
+      " " + (a.watchCount === 1 ? "was" : "were") + " recorded and " +
+      (a.watchCount === 1 ? "is" : "are") + " disclosed in the event log on page 3.";
+  } else {
+    rationale = "No excursion was detected on either layer at any point in the period.";
+  }
+
+  /* ---- page 1 ---- */
+  var page1 =
+    '<div class="paper">' + head(1) +
+      '<div class="doc-eyebrow">Buyer due-diligence compliance report</div>' +
+      '<h1 class="doc-title">' + TP.esc(u.name) + "</h1>" +
+      '<p class="doc-sub">' + TP.esc(u.cluster) + ", " + TP.esc(u.state) + ", India · " +
+        u.lat.toFixed(4) + "° N, " + u.lon.toFixed(4) + "° E · " + TP.esc(u.process) +
+        " · MSME " + TP.esc(u.udyam) + "</p>" +
+
+      '<div class="doc-stats">' +
+        '<div class="doc-stat"><div class="label">Operational status</div>' +
+          '<div class="value">' + TP.esc(a.operationalStatus) + "</div></div>" +
+        '<div class="doc-stat"><div class="label">Certification</div>' +
+          '<div class="value">' + TP.esc(a.certification) + "</div></div>" +
+        '<div class="doc-stat"><div class="label">Flagged events</div>' +
+          '<div class="value big">' + a.flaggedCount + "</div></div>" +
+        '<div class="doc-stat"><div class="label">Watch events</div>' +
+          '<div class="value big">' + a.watchCount + "</div></div>" +
+      "</div>" +
+
+      '<p class="doc-sub" style="margin-bottom:20px">Monitoring period ' +
+        TP.fmtDate(a.readings[0].date, "long") + " – " + TP.fmtDate(latest.date, "long") +
+        " (" + a.readings.length + " days) · satellite NDTI + ground sensors " +
+        "(pH, TDS, turbidity)</p>" +
+
+      '<div class="doc-section"><h3>Plain-English compliance summary</h3>' +
+        "<p>" + TP.esc(a.summary) + "</p></div>" +
+
+      '<div class="doc-section"><h3>Status rationale</h3>' +
+        '<div class="doc-callout">' + TP.esc(rationale) + "</div></div>" +
+
+      (a.certificate ? '<div class="doc-section"><h3>Certificate</h3>' +
+        '<p><span class="mono">' + TP.esc(a.certificate.id) + "</span> · issued " +
+        TP.fmtDate(a.certificate.issued, "long") + " · valid until " +
+        TP.fmtDate(a.certificate.validUntil, "long") +
+        (a.certificate.revoked ? " · <b>REVOKED</b>" : "") +
+        ". Verify at <span class=\"mono\">/verify?id=" + TP.esc(a.certificate.id) +
+        "</span></p></div>" : "") +
+
+    foot() + "</div>";
+
+  /* ---- page 2 ---- */
+  var page2 =
+    '<div class="paper">' + head(2) +
+      '<div class="doc-section"><h3>Satellite water-quality index (NDTI)</h3>' +
+        '<p class="hint" style="font-size:.76rem">Daily NDTI, ' +
+          TP.fmtDate(a.readings[0].date, "long") + " – " + TP.fmtDate(latest.date, "long") +
+          ". The dashed line is this unit's own 30-day median. Shaded bands mark " +
+          "sustained excursions.</p>" +
+        '<div id="p2-ndti"></div></div>' +
+
+      '<div class="doc-section" style="margin-top:26px"><h3>Ground sensors — pH · TDS · turbidity</h3>' +
+        '<p class="hint" style="font-size:.76rem">Each channel is indexed to its own ' +
+          "30-day median = 100, so the three signals share one axis. Plotting them on " +
+          "two different scales would make them appear to cross when they do not.</p>" +
+        '<div id="p2-sensor"></div></div>' +
+    foot() + "</div>";
+
+  /* ---- page 3 ---- */
+  var events = a.events.length
+    ? a.events.map(function (e) {
+        return '<div class="event">' +
+          '<div class="event-top">' + TP.badge(e.severity) +
+            '<span class="event-when">' + TP.fmtRange(e.fromIso, e.toIso) + "</span>" +
+            '<span class="event-src">' + TP.esc(e.source) + "</span></div>" +
+          "<p>" + TP.esc(e.description) + "</p>" +
+          '<div class="res">Resolution: ' + TP.esc(e.resolution) + "</div>" +
+        "</div>";
+      }).join("")
+    : '<p style="font-size:.84rem">No Watch or Flagged events were recorded in this period.</p>';
+
+  var page3 =
+    '<div class="paper">' + head(3) +
+      '<div class="doc-section"><h3>Event log — every Watch and Flagged event</h3>' +
+        '<p class="hint" style="font-size:.76rem">All detections in the ' +
+          TP.fmtDate(a.readings[0].date, "long") + " – " + TP.fmtDate(latest.date, "long") +
+          " window, oldest first, with the resolution recorded for each.</p>" +
+        events + "</div>" +
+
+      '<div class="doc-section" style="margin-top:24px"><h3>How these findings are produced</h3>' +
+        '<p style="font-size:.8rem">Two independent layers are compared daily. ' +
+        "Satellite-derived NDTI tracks water-quality change on the adjacent river " +
+        "stretch; ground sensors log pH, total dissolved solids and turbidity at the " +
+        "discharge point. Each stream is scored against its own 30-day median using a " +
+        "robust median-absolute-deviation threshold, and only sustained runs of " +
+        TP.MIN_RUN_DAYS + " days or more at " + TP.THRESHOLD_SD.toFixed(1) +
+        " SD or beyond count as excursions.</p>" +
+        '<p style="font-size:.8rem">A unit is <b>Flagged</b> only when a satellite ' +
+        "excursion and a sensor excursion overlap in the same time window. A single " +
+        "uncorroborated layer is recorded as <b>Watch</b>. Watch events are disclosed " +
+        "here but do not, on their own, constitute a verified violation — because one " +
+        "layer alone cannot distinguish this unit's discharge from an upstream one, or " +
+        "a genuine sensor excursion from cloud cover over the river.</p>" +
+        '<p style="font-size:.8rem;margin-bottom:0">This is cluster and outlet-level ' +
+        "monitoring, not pipe-level forensic proof, and is stated as such.</p></div>" +
+    foot() + "</div>";
+
+  doc.innerHTML = page1 + page2 + page3;
+
+  TP.lineChart(document.getElementById("p2-ndti"), {
+    dates: a.readings.map(function (r) { return r.date; }),
+    series: [{ label: "NDTI", values: a.channels.ndti.values, color: "var(--series-sat)" }],
+    bands: (function () {
+      var pos = {}; a.readings.forEach(function (r, i) { pos[r.dayIndex] = i; });
+      return a.events.filter(function (e) { return e.channels.indexOf("ndti") !== -1; })
+        .map(function (e) {
+          return { i0: pos[e.from], i1: pos[e.to], severity: e.severity, label: e.severity.toUpperCase() };
+        });
+    })(),
+    baseline: a.channels.ndti.median,
+    format: function (v) { return v.toFixed(1); },
+    ariaLabel: "Daily satellite NDTI for " + u.name,
+    height: 210,
+    table: false
+  });
+
+  TP.lineChart(document.getElementById("p2-sensor"), {
+    dates: a.readings.map(function (r) { return r.date; }),
+    series: [
+      { label: "pH",        values: a.channels.ph.indexed,   color: "var(--series-1)" },
+      { label: "TDS",       values: a.channels.tds.indexed,  color: "var(--series-2)", dash: "7 3" },
+      { label: "Turbidity", values: a.channels.turb.indexed, color: "var(--series-3)", dash: "2 3" }
+    ],
+    bands: (function () {
+      var pos = {}; a.readings.forEach(function (r, i) { pos[r.dayIndex] = i; });
+      return a.events.filter(function (e) {
+        return e.channels.some(function (c) { return c !== "ndti"; });
+      }).map(function (e) {
+        return { i0: pos[e.from], i1: pos[e.to], severity: e.severity, label: e.severity.toUpperCase() };
+      });
+    })(),
+    baseline: 100,
+    format: function (v) { return v.toFixed(0); },
+    ariaLabel: "Ground sensor channels for " + u.name + ", each indexed to its own 30-day median",
+    height: 210,
+    table: false
+  });
+})();
+</script>
+
+</body>
+</html>

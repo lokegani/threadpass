@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<main class="page">
+  <div class="wrap stack" id="view"></div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var session = TP.requireSession();
+  if (!session) return;
+
+  /* A unit account has exactly one unit to look at, so send it straight there
+     rather than showing a cluster table with a single row in it. */
+  if (session.role === "UNIT") {
+    location.replace("unit.html?u=" + encodeURIComponent(session.unit));
+    return;
+  }
+
+  TP.renderChrome("dashboard", session);
+  TP.renderFooter();
+
+  var all = TP.analyseAll();
+
+  function count(fn) { return all.filter(fn).length; }
+
+  var certified = count(function (a) { return a.certification === "Certified"; });
+  var flagged   = count(function (a) { return a.operationalStatus === "Flagged"; });
+  var watching  = count(function (a) { return a.operationalStatus === "Watch"; });
+  var pending   = count(function (a) { return !a.enoughHistory; });
+
+  var tiles =
+    '<div class="grid grid-4">' +
+      '<div class="stat"><div class="label">Units monitored</div>' +
+        '<div class="value">' + all.length + "</div>" +
+        '<div class="sub">Tirupur, Erode and Karur</div></div>' +
+      '<div class="stat"><div class="label">Certified</div>' +
+        '<div class="value" style="color:var(--teal)">' + certified + "</div>" +
+        '<div class="sub">No verified violation in period</div></div>' +
+      '<div class="stat"><div class="label">Flagged</div>' +
+        '<div class="value" style="color:var(--red)">' + flagged + "</div>" +
+        '<div class="sub">Dual-layer confirmed</div></div>' +
+      '<div class="stat"><div class="label">Watch only</div>' +
+        '<div class="value" style="color:var(--amber)">' + watching + "</div>" +
+        '<div class="sub">Single layer, non-blocking</div></div>' +
+    "</div>";
+
+  var rows = all.map(function (a) {
+    var u = a.unit;
+    var latest = a.latest;
+    return "<tr>" +
+      '<td><a class="row-link" href="unit.html?u=' + TP.esc(u.slug) + '">' + TP.esc(u.name) + "</a>" +
+        '<div class="hint">' + TP.esc(u.process) + "</div></td>" +
+      "<td>" + TP.esc(u.cluster) + "</td>" +
+      "<td>" + TP.badge(a.operationalStatus) + "</td>" +
+      "<td>" + TP.badge(a.certification) + "</td>" +
+      '<td class="num">' + (a.flaggedCount || "—") + "</td>" +
+      '<td class="num">' + (a.watchCount || "—") + "</td>" +
+      '<td class="num">' + latest.ndti.toFixed(1) + "</td>" +
+      '<td class="num">' + latest.ph.toFixed(2) + "</td>" +
+      '<td class="num">' + Math.round(latest.tds) + "</td>" +
+      '<td class="num">' + latest.turb.toFixed(1) + "</td>" +
+    "</tr>";
+  }).join("");
+
+  var table =
+    '<div class="card flush">' +
+      '<div class="card-head"><h2>Cluster</h2>' +
+        '<span class="hint">Monitoring period ' + TP.fmtDate(TP.PERIOD.start, "long") +
+        " – " + TP.fmtDate(TP.PERIOD.end, "long") + "</span></div>" +
+      '<div class="table-scroll"><table class="data"><thead><tr>' +
+        "<th>Unit</th><th>Cluster</th><th>Operational</th><th>Certification</th>" +
+        '<th class="num">Flagged</th><th class="num">Watch</th>' +
+        '<th class="num">NDTI</th><th class="num">pH</th>' +
+        '<th class="num">TDS mg/L</th><th class="num">Turb NTU</th>' +
+      "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
+      '<div class="card-body" style="border-top:1px solid var(--border)">' +
+        '<p class="hint" style="margin:0">Last four columns are the most recent daily reading ' +
+        "for each unit, not a period average.</p></div>" +
+    "</div>";
+
+  document.getElementById("view").innerHTML =
+    '<div class="page-head"><h1>Cluster overview</h1>' +
+      "<p>Every participating unit, scored against its own baseline over the " +
+      TP.PERIOD.days + "-day monitoring window.</p></div>" +
+    tiles + table;
+})();
+</script>
+
+</body>
+</html>

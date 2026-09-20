@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="13" fill="#0E2237"/>
+  <!-- the satellite layer, arcing over -->
+  <path d="M11 23a30 30 0 0 1 42 0" fill="none" stroke="#D8661B"
+        stroke-width="4.5" stroke-linecap="round"/>
+  <!-- the water it is watching -->
+  <path d="M32 27c6 7.6 9.4 12.4 9.4 16.6A9.4 9.4 0 0 1 32 53a9.4 9.4 0 0 1-9.4-9.4C22.6 39.4 26 34.6 32 27z"
+        fill="#ffffff"/>
+</svg>

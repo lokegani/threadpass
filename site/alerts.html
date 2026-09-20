@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alerts — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<main class="page">
+  <div class="wrap stack" id="view"></div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var session = TP.requireSession();
+  if (!session) return;
+
+  TP.renderChrome("alerts", session);
+  TP.renderFooter();
+
+  var visible = TP.visibleUnits(session);
+
+  /* Flatten every unit's events into one feed, most recent first. */
+  var feed = [];
+  visible.forEach(function (a) {
+    a.events.forEach(function (e) { feed.push({ analysis: a, event: e }); });
+  });
+  feed.sort(function (x, y) { return y.event.from - x.event.from; });
+
+  var flagged = feed.filter(function (f) { return f.event.severity === "Flagged"; }).length;
+  var watch = feed.length - flagged;
+
+  var filter = "all";
+
+  function render() {
+    var shown = feed.filter(function (f) {
+      return filter === "all" || f.event.severity === filter;
+    });
+
+    var body = shown.length
+      ? shown.map(function (f) {
+          var u = f.analysis.unit, e = f.event;
+          return '<div class="event">' +
+            '<div class="event-top">' + TP.badge(e.severity) +
+              '<a class="row-link" href="unit.html?u=' + TP.esc(u.slug) + '">' + TP.esc(u.name) + "</a>" +
+              '<span class="event-when">' + TP.fmtRange(e.fromIso, e.toIso) + "</span>" +
+              '<span class="event-src">' + TP.esc(u.cluster) + " · " + TP.esc(e.source) + "</span>" +
+            "</div>" +
+            "<p>" + TP.esc(e.description) + "</p>" +
+            '<div class="res">Resolution: ' + TP.esc(e.resolution) + "</div>" +
+          "</div>";
+        }).join("")
+      : '<p class="hint" style="margin:0">Nothing matches this filter.</p>';
+
+    document.getElementById("feed").innerHTML = body;
+
+    ["all", "Flagged", "Watch"].forEach(function (key) {
+      var btn = document.getElementById("f-" + key);
+      if (btn) btn.className = "btn sm" + (filter === key ? " primary" : "");
+    });
+  }
+
+  document.getElementById("view").innerHTML =
+    '<div class="page-head"><h1>Alerts</h1>' +
+      "<p>Every Watch and Flagged event detected in the " + TP.PERIOD.days +
+      "-day window" + (session.role === "MONITOR" ? " across the cluster" : " for your unit") + ".</p></div>" +
+
+    '<div class="grid grid-3">' +
+      '<div class="stat"><div class="label">Flagged</div>' +
+        '<div class="value" style="color:var(--red)">' + flagged + "</div>" +
+        '<div class="sub">Satellite and sensor agreed</div></div>' +
+      '<div class="stat"><div class="label">Watch</div>' +
+        '<div class="value" style="color:var(--amber)">' + watch + "</div>" +
+        '<div class="sub">One layer only — not a violation</div></div>' +
+      '<div class="stat"><div class="label">Units in view</div>' +
+        '<div class="value">' + visible.length + "</div>" +
+        '<div class="sub">' + TP.esc(session.role === "MONITOR" ? "Full cluster" : "Your unit") + "</div></div>" +
+    "</div>" +
+
+    '<div class="card flush">' +
+      '<div class="card-head"><h2>Event feed</h2>' +
+        '<div class="btn-row">' +
+          '<button class="btn sm" id="f-all" type="button">All</button>' +
+          '<button class="btn sm" id="f-Flagged" type="button">Flagged</button>' +
+          '<button class="btn sm" id="f-Watch" type="button">Watch</button>' +
+        "</div></div>" +
+      '<div class="card-body" id="feed"></div>' +
+    "</div>" +
+
+    '<div class="notice"><b>Why a Watch is not a violation.</b> A Watch means one ' +
+      "layer saw something and the other did not. A satellite reading with no sensor " +
+      "excursion can be an upstream discharge from a unit that is not yours; a sensor " +
+      "reading with no satellite excursion can be cloud cover over the river on those " +
+      "dates. Neither is evidence against this unit on its own, so ThreadPass records " +
+      "and discloses it without counting it.</div>";
+
+  ["all", "Flagged", "Watch"].forEach(function (key) {
+    document.getElementById("f-" + key).addEventListener("click", function () {
+      filter = key;
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

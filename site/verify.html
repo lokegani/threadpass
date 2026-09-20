@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verify a certificate — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="index.html"><b>ThreadPass</b><span>Certificate Verification</span></a>
+  <nav class="nav"></nav>
+  <div class="topbar-right">
+    <a class="btn sm" href="signin.html">Sign in</a>
+  </div>
+</div></header>
+<div class="simbar"><div class="wrap">Simulated data — demonstration build</div></div>
+
+<main class="page">
+  <div class="wrap stack" style="max-width:720px">
+
+    <div class="page-head">
+      <h1>Verify a certificate</h1>
+      <p>Confirms whether a ThreadPass certificate is genuine and currently
+         valid. No account needed — this page is for buyers.</p>
+    </div>
+
+    <div class="card">
+      <form id="lookup">
+        <div class="field">
+          <label for="cert">Certificate ID</label>
+          <input id="cert" type="text" spellcheck="false" placeholder="TP-TUP-260829-0IP4J0Z"
+                 style="font-family:var(--mono)">
+        </div>
+        <button class="btn primary" type="submit">Verify</button>
+      </form>
+    </div>
+
+    <div id="result"></div>
+
+  </div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  TP.renderFooter();
+
+  var input = document.getElementById("cert");
+  var out = document.getElementById("result");
+
+  function row(label, value) {
+    return "<tr><td>" + TP.esc(label) + '</td><td class="num">' + value + "</td></tr>";
+  }
+
+  function render(rawId) {
+    var id = String(rawId || "").trim();
+    if (!id) { out.innerHTML = ""; return; }
+
+    var hit = TP.findCertificate(id);
+
+    if (!hit) {
+      out.innerHTML =
+        '<div class="card">' +
+          '<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">' +
+            '<span class="badge neutral">Not found</span></div>' +
+          "<h2>No certificate matching that ID</h2>" +
+          '<p class="hint" style="margin-bottom:0">No certificate with the ID ' +
+            '<span class="mono">' + TP.esc(id) + "</span> has been issued by ThreadPass. " +
+            "Check the ID, or rescan the code on the document.</p>" +
+        "</div>";
+      return;
+    }
+
+    var c = hit.certificate, u = hit.unit;
+    var valid = !c.revoked;
+
+    var banner = valid
+      ? '<div class="badge ok">Valid</div>'
+      : '<div class="badge flag">Revoked</div>';
+
+    var headline = valid
+      ? "This certificate is genuine and currently valid"
+      : "This certificate has been revoked";
+
+    var explain = valid
+      ? "It was issued by ThreadPass for the monitoring period shown below, and " +
+        "has not been revoked."
+      : "It was issued by ThreadPass, but has since been withdrawn" +
+        (c.revokedOn ? " on " + TP.fmtDate(c.revokedOn, "long") : "") +
+        ". It should not be relied on as evidence of compliance.";
+
+    out.innerHTML =
+      '<div class="card">' +
+        '<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">' + banner + "</div>" +
+        "<h2>" + TP.esc(headline) + "</h2>" +
+        "<p>" + TP.esc(explain) + "</p>" +
+
+        '<div class="table-scroll" style="margin-top:16px">' +
+        '<table class="data"><tbody>' +
+          row("Certificate ID", '<span class="mono">' + TP.esc(c.id) + "</span>") +
+          row("Issued to", TP.esc(u.name)) +
+          row("Location", TP.esc(u.cluster + ", " + u.state)) +
+          row("Process", TP.esc(u.process)) +
+          row("Registration", '<span class="mono">' + TP.esc(u.udyam) + "</span>") +
+          row("Period covered", TP.fmtDate(c.periodStart, "long") + " – " + TP.fmtDate(c.periodEnd, "long")) +
+          row("Issue date", TP.fmtDate(c.issued, "long")) +
+          row("Valid until", TP.fmtDate(c.validUntil, "long")) +
+          row("Verified violations", c.violations) +
+          row("Watch observations", c.watch + " <span class='hint'>(non-blocking)</span>") +
+          row("Status now", TP.badge(hit.certification)) +
+        "</tbody></table></div>" +
+
+        '<p class="hint" style="margin:16px 0 0">Watch observations are ' +
+          "single-layer detections that were disclosed but not corroborated across " +
+          "both monitoring layers. Under the ThreadPass rule they do not constitute " +
+          "a verified violation and do not affect eligibility.</p>" +
+      "</div>" +
+
+      '<div class="notice" style="margin-top:18px">' + TP.esc(TP.DISCLAIMER) + "</div>";
+  }
+
+  document.getElementById("lookup").addEventListener("submit", function (evt) {
+    evt.preventDefault();
+    /* Keep the URL shareable, so a verified result can be sent to a colleague. */
+    var id = input.value.trim();
+    history.replaceState(null, "", id ? "verify.html?id=" + encodeURIComponent(id) : "verify.html");
+    render(id);
+  });
+
+  var fromUrl = TP.query("id");
+  if (fromUrl) { input.value = fromUrl; render(fromUrl); }
+})();
+</script>
+
+</body>
+</html>

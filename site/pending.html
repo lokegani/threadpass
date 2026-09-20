@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monitoring not yet active — ThreadPass</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script>
+  try {
+    var t = localStorage.getItem("threadpass.theme");
+    if (t) document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<div id="chrome"></div>
+
+<main class="page">
+  <div class="wrap stack" style="max-width:720px" id="view"></div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/detect.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var session = TP.requireSession();
+  if (!session) return;
+
+  TP.renderChrome("dashboard", session);
+  TP.renderFooter();
+
+  var a = session.unit ? TP.byUnitSlug(session.unit) : null;
+
+  /* Nothing to hold here if the unit already has a full baseline. */
+  if (a && a.enoughHistory) { location.replace("unit.html?u=" + encodeURIComponent(session.unit)); return; }
+
+  var days = a ? a.readings.length : 0;
+  var remaining = Math.max(0, TP.MIN_HISTORY - days);
+
+  document.getElementById("view").innerHTML =
+    '<div class="page-head"><h1>Monitoring is running, but not yet reportable</h1>' +
+      "<p>" + TP.esc(a ? a.unit.name : session.label) + "</p></div>" +
+
+    '<div class="card">' +
+      '<div class="grid grid-3" style="margin-bottom:16px">' +
+        '<div class="stat"><div class="label">Days collected</div>' +
+          '<div class="value">' + days + "</div></div>" +
+        '<div class="stat"><div class="label">Days required</div>' +
+          '<div class="value">' + TP.MIN_HISTORY + "</div></div>" +
+        '<div class="stat"><div class="label">Remaining</div>' +
+          '<div class="value" style="color:var(--amber)">' + remaining + "</div></div>" +
+      "</div>" +
+
+      "<p>Your satellite and sensor layers are both logging. What is missing is " +
+      "history: every reading is scored against your unit's own 30-day median, and " +
+      "that median is not stable enough to judge anything against until 30 days of " +
+      "paired data exist.</p>" +
+
+      "<p style=\"margin-bottom:0\">Reporting a status now would mean comparing today " +
+      "against a baseline built from a handful of days — which would flag ordinary " +
+      "variation as an excursion, and would be worse than saying nothing.</p>" +
+    "</div>" +
+
+    '<div class="notice"><b>This is not a clean result.</b> No findings are shown ' +
+      "because none can be computed yet, not because none exist. A buyer reading this " +
+      "should treat it as \"not yet assessed\", never as \"assessed and passed\".</div>";
+})();
+</script>
+
+</body>
+</html>
